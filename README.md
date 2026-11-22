@@ -1,6 +1,7 @@
 # User Stories Bot MCP server
 
 [![User Stories Bot MCP connector – tool definition quality and endpoint health on Glama](https://glama.ai/mcp/connectors/com.userstoriesbot/mcp/badges/score.svg)](https://glama.ai/mcp/connectors/com.userstoriesbot/mcp)
+[![GitHub MCP Registry](https://img.shields.io/badge/GitHub_MCP_Registry-listed-24292f?logo=github&logoColor=white)](https://github.com/mcp/com.userstoriesbot/mcp)
 
 Let your agents record the demo. User Stories Bot records narrated demo videos of your app; its MCP server opens that pipeline to your AI agents. An MCP-capable agent asks for a narrated demo of a branch, follows the recording and hands the finished video, captions and user stories to your reviewers, with no pull request needed.
 
