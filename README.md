@@ -1,6 +1,6 @@
 # User Stories Bot MCP server
 
-[![User Stories Bot MCP connector – tool definition quality and endpoint health on Glama](https://glama.ai/mcp/connectors/com.userstoriesbot/mcp/badges/score.svg)](https://glama.ai/mcp/connectors/com.userstoriesbot/mcp)
+[![User Stories Bot MCP connector: tool definition quality and endpoint health on Glama](https://glama.ai/mcp/connectors/com.userstoriesbot/mcp/badges/score.svg)](https://glama.ai/mcp/connectors/com.userstoriesbot/mcp)
 [![GitHub MCP Registry](https://img.shields.io/badge/GitHub_MCP_Registry-listed-24292f?logo=github&logoColor=white)](https://github.com/mcp/com.userstoriesbot/mcp)
 
 Let your agents record the demo. User Stories Bot records narrated demo videos of your app; its MCP server opens that pipeline to your AI agents. An MCP-capable agent asks for a narrated demo of a branch, follows the recording and hands the finished video, captions and user stories to your reviewers, with no pull request needed.
@@ -15,7 +15,7 @@ This repository holds documentation only. The server is hosted by User Stories B
 
 ## Who can use it
 
-Paid plans; one API key per agent. An org admin creates API keys in the dashboard; they work on the Pro and Team plans. Each key belongs to the org whose GitHub App installation covers the repository, so install the User Stories Bot GitHub App on the repository first: https://github.com/apps/userstoriesbot-com
+Every plan; one API key per agent. An org admin creates API keys in the dashboard. Each key belongs to the org whose GitHub App installation covers the repository, so install the User Stories Bot GitHub App on the repository first: https://github.com/apps/userstoriesbot-com
 
 ## Get a key
 
@@ -29,12 +29,12 @@ Put your own key where a snippet shows `<USB_MCP_KEY>`, or export it as `USB_MCP
 
 | Tool | What it does | Input | Output |
 | --- | --- | --- | --- |
-| `demo_record` | Record a narrated demo of a branch from a short brief and get a run id back. | `repo` (owner/repo), `branch`, `brief` (at most 1000 characters), optional `idempotencyKey` (at most 128 characters) | `runId`, `status: "queued"`, `dashboardUrl` |
-| `run_status` | Follow a run stage by stage, from sandbox start to the finished video. Read only. | `runId` | `runId`, `status` (`queued`, `provisioning`, `running`, `succeeded`, `failed`, `cancelled`, `refused`), `stage`, `outcome` (`videos`, `no_demo`, `unsupported_stack`), `reason`, `createdAt`, `finishedAt`, `videos` (`name`, `url`, `captionsUrl`, `posterUrl`), `dashboardUrl`, `setupBrief` |
-| `videos_list` | List the finished videos of a repository with their share links and captions. Read only. | `repo`, optional `limit` (1 to 50, default 20) and `cursor` | `repo`, `videos` (`kind` `guide` or `run`, `name`, `title`, `url`, `captionsUrl`, `posterUrl`, `durationSec`, `runId`, `recordedAt`, `public`), `nextCursor` |
-| `stories_get` | Fetch the user stories and demo steps a run covered, as structured JSON. Read only. | `runId` | `runId`, `stories` (`file`, `id`, `title`, `markdown`), `steps` (`spec`, `title`, `segments` of `marker` and `text`) |
+| `demo_record` | Start one asynchronous run that records a narrated demo video of a GitHub branch from a short plain-text brief. It returns at once with a run id and status queued, never the video: poll run_status with that id (a run usually takes about 10 minutes); use videos_list instead when you only need videos that already exist. Requires an organization API key sent as a Bearer token, and the repository must be covered by that organization's GitHub App installation. Each new run counts against your plan's daily recording limit and, for private repositories, your monthly credits. A repeat with the same idempotencyKey within 24 hours, or an identical request (same repository, branch and brief) while its run is still active, returns that run instead of starting a new one. | `repo` (owner/repo), `branch`, `brief` (at most 1000 characters), optional `idempotencyKey` (at most 128 characters) | `runId`, `status: "queued"`, `dashboardUrl` |
+| `run_status` | Check the progress and result of one recording run by the run id that demo_record returned. Poll it about once a minute until the status is succeeded, failed, cancelled or refused; a run usually takes about 10 minutes. Video links appear only on a succeeded run with outcome videos and expire after a few minutes (call again for fresh links), while a failed run or one that produced no demo may carry a setup brief saying what to change in the repository. Use videos_list to find finished videos without a run id and stories_get for the run's user stories; a key sees only its own organization's runs, so an unknown or foreign run id answers 'run not found'. Read only. | `runId` | `runId`, `status` (`queued`, `provisioning`, `running`, `succeeded`, `failed`, `cancelled`, `refused`), `stage`, `outcome` (`videos`, `no_demo`, `unsupported_stack`), `reason`, `createdAt`, `finishedAt`, `videos` (`name`, `url`, `captionsUrl`, `posterUrl`), `dashboardUrl`, `setupBrief` |
+| `videos_list` | List the finished demo videos of one repository without needing a run id: library guides first, then videos from the most recent runs. Use it to find or share recordings that already exist; use run_status instead to follow one run in progress, and demo_record to record a new video. Results are paged (pass nextCursor back as cursor); a link marked public is a stable share link, every other link is temporary and expires after a few minutes, so call again for fresh ones. A key sees only repositories covered by its organization's GitHub App installation; any other repository answers 'repository not available to this key'. Read only. | `repo`, optional `limit` (1 to 50, default 20) and `cursor` | `repo`, `videos` (`kind` `guide` or `run`, `name`, `title`, `url`, `captionsUrl`, `posterUrl`, `durationSec`, `runId`, `recordedAt`, `public`), `nextCursor` |
+| `stories_get` | Fetch the written content behind one run's videos: the user stories as Markdown and the demo steps with their narration text. Call it with a run id from demo_record, run_status or a videos_list entry once that run has finished; use run_status instead for the video links and videos_list to browse a repository's videos. Very large answers are cut at a size cap and the text summary says how many stories were left out; a run with nothing written yet returns empty lists. A key sees only its own organization's runs, so an unknown or foreign run id answers 'run not found'. Read only. | `runId` | `runId`, `stories` (`file`, `id`, `title`, `markdown`), `steps` (`spec`, `title`, `segments` of `marker` and `text`) |
 
-Every result carries the output above as structured content plus a one-line text summary. A refused call returns a reason instead of a run.
+Every result carries the output above as structured content plus a one-line text summary. A refused call returns a reason instead of a run. The server sends the same descriptions in `tools/list`, with a description on every input and output field, and declares the standard hints: `demo_record` is not read only, not destructive, not idempotent and open world; the three readers are read only, idempotent and closed world.
 
 The brief says what to show, in plain words. It passes the same checks as a rerun request: no links, no commands, no instructions to the bot.
 
@@ -145,14 +145,14 @@ Record a demo of this branch with User Stories Bot: show the new checkout flow. 
 A typical session: the agent calls `demo_record` with the repository, the branch and a short brief, polls `run_status` until it finishes, then fetches `videos_list` and `stories_get`.
 
 1. `demo_record` with `{ "repo": "acme/app", "branch": "feature/checkout", "brief": "Show the new checkout flow." }` answers `run <run id> queued; poll run_status` with the `runId` and the `dashboardUrl`.
-2. `run_status` with `{ "runId": "<run id>" }`, every 30 seconds, until the status is `succeeded`, `failed`, `cancelled` or `refused`. On `succeeded`, each entry of `videos` carries the video `url` and its `captionsUrl`. On `failed`, `no_demo` or `unsupported_stack`, a `setupBrief` tells your coding agent what to change in the repository.
+2. `run_status` with `{ "runId": "<run id>" }`, every 60 seconds, until the status is `succeeded`, `failed`, `cancelled` or `refused`. On `succeeded`, each entry of `videos` carries the video `url` and its `captionsUrl`. On `failed`, `no_demo` or `unsupported_stack`, a `setupBrief` tells your coding agent what to change in the repository.
 3. `stories_get` with `{ "runId": "<run id>" }` returns the user stories and the demo steps the run covered; `videos_list` with `{ "repo": "acme/app" }` lists the repository's guides and earlier runs.
 
-Use one `idempotencyKey` per request: a retry with the same key returns the earlier run (`already requested`) instead of starting a new one.
+Use one `idempotencyKey` per request: a retry with the same key returns the earlier run (`already requested`) instead of starting a new one. The same repository, branch and brief also return the run in progress, with any key or none.
 
 ## Limits
 
-A run started over MCP uses the credits of your plan like a run from a pull request. Calls are rate limited per key and per org; the limits for your plan are shown on the API keys page of the dashboard. An HTTP 401 means the key is missing or revoked; an HTTP 429 means wait a minute and retry.
+A run started over MCP counts exactly like a run from a pull request: on Free, public repositories use the daily allowance; private repositories use your plan's monthly runs or credits. Calls are rate limited per key and per org; the limits for your plan are shown on the API keys page of the dashboard. An HTTP 401 means the key is missing or revoked; an HTTP 429 means wait a minute and retry.
 
 ## Links
 
